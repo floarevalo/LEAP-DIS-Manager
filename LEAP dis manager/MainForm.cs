@@ -27,7 +27,7 @@ namespace LEAP_dis_manager
         private int databasePort;
         private bool isMulticast;
         private int exerciseID;
-
+        private string sectionID = "";
         private ConcurrentQueue<byte[]> receivedByteQueue;
         private UdpClient client;
         private IPEndPoint epReceive;
@@ -115,9 +115,10 @@ namespace LEAP_dis_manager
             databasePort = Properties.Settings.Default.databasePort;
             isMulticast = Properties.Settings.Default.isMulticast;
             exerciseID = Properties.Settings.Default.exerciseID;
+            //sectionID = Properties.Settings.Default.sectionID;
         }
 
-        public void SaveSettings(string newReceivingIpAddress, int newReceivingPort, string newDatabaseIpAddress, int newDatabasePort, bool newIsMulticast, int newExerciseID)
+        public void SaveSettings(string newReceivingIpAddress, int newReceivingPort, string newDatabaseIpAddress, int newDatabasePort, bool newIsMulticast, int newExerciseID, string newSectionID)
         {
             receivingIpAddress = newReceivingIpAddress;
             receivingPort = newReceivingPort;
@@ -125,13 +126,14 @@ namespace LEAP_dis_manager
             databasePort = newDatabasePort;
             isMulticast = newIsMulticast;
             exerciseID = newExerciseID;
+            sectionID = newSectionID;
         }
 
         private void openSettings(object sender, EventArgs e)
         {
             if (settingsForm == null || settingsForm.IsDisposed)
             {
-                settingsForm = new Settings(this, receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID);
+                settingsForm = new Settings(this, receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID, sectionID);
             }
 
             settingsForm.Show();
@@ -323,13 +325,6 @@ namespace LEAP_dis_manager
 
             try
             {
-                using NpgsqlConnection conn = new NpgsqlConnection(connectionString);
-                conn.Open();
-
-                //Check the database to see if a unit with the given Entity ID already exists
-                //this assumes that we use appplication_id and site_id to distinguish between different entities
-                string query = "SELECT COUNT(*) FROM units WHERE unit_ern = @unit_ern AND site_id = @site_id AND application_id = @application_id";
-                using NpgsqlCommand checkCommand = new NpgsqlCommand(query, conn);
                 byte[] markingCharacters = entity.Marking.Characters;
                 int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
                 string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, nullIndex);
@@ -339,11 +334,19 @@ namespace LEAP_dis_manager
                 int unit_ern = entity.EntityID.Entity;
                 int application_id = entity.EntityID.Application;
                 int site_id = entity.EntityID.Site;
+                using NpgsqlConnection conn = new NpgsqlConnection(connectionString);
+                conn.Open();
+                
+                //Check the database to see if a unit with the given Entity ID already exists
+                //this assumes that we use appplication_id and site_id to distinguish between different entities
+                string query = "SELECT COUNT(*) FROM dis WHERE section_id = @section_id AND unit_name = @unit_name";
+                using NpgsqlCommand checkCommand = new NpgsqlCommand(query, conn);
 
 
-                checkCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
-                checkCommand.Parameters.AddWithValue("@application_id", application_id);
-                checkCommand.Parameters.AddWithValue("@site_id", site_id);
+                //sectionID is a global variable
+                checkCommand.Parameters.AddWithValue("@section_id", sectionID);
+                checkCommand.Parameters.AddWithValue("@unit_name", unit_name);
+
 
                 int count = Convert.ToInt32(checkCommand.ExecuteScalar());
                 
@@ -351,9 +354,11 @@ namespace LEAP_dis_manager
                 {
                     //If a unit with the given Entity ID does not exist in the database, add it
                     
-                    string insertQuery = "INSERT INTO UNITS (unit_name, unit_ern, application_id, site_id, xcord, ycord, zcord) VALUES (@unit_name, @unit_ern , @application_id, @site_id, @xcord, @ycord, @zcord)";
+                    string insertQuery = "INSERT INTO dis (unit_name, section_id, unit_ern, application_id, site_id, xcord, ycord, zcord) VALUES (@unit_name, @section_id, @unit_ern , @application_id, @site_id, @xcord, @ycord, @zcord)";
                     using NpgsqlCommand insertCommand = new NpgsqlCommand(insertQuery, conn);
                     insertCommand.Parameters.AddWithValue("@unit_name", unit_name);
+                    //sectionID is a global variable
+                    insertCommand.Parameters.AddWithValue("@section_id", sectionID);
 
                     insertCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
                     insertCommand.Parameters.AddWithValue("@application_id", application_id);
@@ -380,14 +385,15 @@ namespace LEAP_dis_manager
                 else
                 {
                     //If a unit with the given Entity ID exists in the database, update it
-                    string updateQuery = "UPDATE UNITS SET unit_name = @unit_name, unit_ern = @unit_ern, application_id = @application_id, site_id = @site_id, xcord = @xcord, ycord = @ycord, zcord =  @zcord" +
-                        " WHERE unit_ern = @unit_ern AND site_id = @site_id AND application_id = @application_id";
+                    string updateQuery = "UPDATE dis SET unit_name = @unit_name, section_id = @section_id, unit_ern = @unit_ern, application_id = @application_id, site_id = @site_id, xcord = @xcord, ycord = @ycord, zcord =  @zcord" +
+                        " WHERE section_id = @section_id AND unit_name = @unit_name ";
                     using NpgsqlCommand updateCommand = new NpgsqlCommand(updateQuery, conn);
 
 
 
                     updateCommand.Parameters.AddWithValue("@unit_name", unit_name);
-
+                    //sectionID is a global variable
+                    updateCommand.Parameters.AddWithValue("@section_id", sectionID);
                     updateCommand.Parameters.AddWithValue("@unit_ern",unit_ern);
                     updateCommand.Parameters.AddWithValue("@application_id", application_id);
                     updateCommand.Parameters.AddWithValue("@site_id", site_id);
@@ -452,8 +458,16 @@ namespace LEAP_dis_manager
 
         private void run(object sender, EventArgs e)
         {
+            
             if (Start_button.Text == "Start")
             {
+
+                if (sectionID == "")
+                {
+                    MessageBox.Show("Please input a section ID");
+                    return;
+                }
+
                 if (!runFuncts.runFuncts.validateRunParams(receivingIpAddress, receivingPort, databaseIpAddress, databasePort))
                 {
                     return;
@@ -489,6 +503,10 @@ namespace LEAP_dis_manager
             {
                 Start_button.Text = "Start";
             }
+        }
+        private void sectionIDTextBox_TextChanged(object sender, EventArgs e)
+        {
+            sectionID = sectionIDTextBox.Text;
         }
     }
 }

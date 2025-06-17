@@ -41,6 +41,8 @@
             title_label = new Label();
             close_button = new Button();
             Start_button = new Button();
+            sectionIDTextBox = new TextBox();
+            label10 = new Label();
             SuspendLayout();
             // 
             // button1
@@ -83,11 +85,30 @@
             Start_button.UseVisualStyleBackColor = true;
             Start_button.Click += run;
             // 
+            // sectionIDTextBox
+            // 
+            sectionIDTextBox.Location = new Point(422, 147);
+            sectionIDTextBox.Name = "sectionIDTextBox";
+            sectionIDTextBox.Size = new Size(100, 23);
+            sectionIDTextBox.TabIndex = 35;
+            sectionIDTextBox.TextChanged += sectionIDTextBox_TextChanged;
+            // 
+            // label10
+            // 
+            label10.AutoSize = true;
+            label10.Location = new Point(422, 129);
+            label10.Name = "label10";
+            label10.Size = new Size(63, 15);
+            label10.TabIndex = 34;
+            label10.Text = "Section ID:";
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(534, 220);
+            Controls.Add(sectionIDTextBox);
+            Controls.Add(label10);
             Controls.Add(Start_button);
             Controls.Add(close_button);
             Controls.Add(title_label);
@@ -105,5 +126,7 @@
         private Label title_label;
         private Button close_button;
         private Button Start_button;
+        private TextBox sectionIDTextBox;
+        private Label label10;
     }
 }

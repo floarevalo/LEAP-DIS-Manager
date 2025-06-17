@@ -87,6 +87,7 @@
             Multicast.TabIndex = 4;
             Multicast.Text = "Multicast";
             Multicast.UseVisualStyleBackColor = true;
+            Multicast.CheckedChanged += Multicast_CheckedChanged;
             // 
             // recievingPortMTB
             // 
@@ -95,6 +96,7 @@
             recievingPortMTB.Name = "recievingPortMTB";
             recievingPortMTB.Size = new Size(82, 29);
             recievingPortMTB.TabIndex = 6;
+            recievingPortMTB.Text = "52";
             recievingPortMTB.Click += ipTextBox_click;
             // 
             // databasePortMTB
@@ -104,6 +106,7 @@
             databasePortMTB.Name = "databasePortMTB";
             databasePortMTB.Size = new Size(79, 29);
             databasePortMTB.TabIndex = 10;
+            databasePortMTB.Text = "520";
             databasePortMTB.Click += ipTextBox_click;
             // 
             // label1
@@ -153,6 +156,7 @@
             receivingIp1.Name = "receivingIp1";
             receivingIp1.Size = new Size(33, 23);
             receivingIp1.TabIndex = 16;
+            receivingIp1.Text = "123";
             receivingIp1.Click += ipTextBox_click;
             receivingIp1.TextChanged += receivingIp1_TextChanged;
             // 
@@ -163,6 +167,7 @@
             receivingIp2.Name = "receivingIp2";
             receivingIp2.Size = new Size(33, 23);
             receivingIp2.TabIndex = 17;
+            receivingIp2.Text = "52";
             receivingIp2.Click += ipTextBox_click;
             receivingIp2.TextChanged += receivingIp2_TextChanged;
             // 
@@ -173,6 +178,7 @@
             receivingIp3.Name = "receivingIp3";
             receivingIp3.Size = new Size(33, 23);
             receivingIp3.TabIndex = 18;
+            receivingIp3.Text = "78";
             receivingIp3.Click += ipTextBox_click;
             receivingIp3.TextChanged += receivingIp3_TextChanged;
             // 
@@ -183,6 +189,7 @@
             receivingIp4.Name = "receivingIp4";
             receivingIp4.Size = new Size(33, 23);
             receivingIp4.TabIndex = 19;
+            receivingIp4.Text = "988";
             receivingIp4.Click += ipTextBox_click;
             receivingIp4.TextChanged += receivingIp4_TextChanged;
             // 
@@ -247,6 +254,7 @@
             databaseIp4.Name = "databaseIp4";
             databaseIp4.Size = new Size(33, 23);
             databaseIp4.TabIndex = 26;
+            databaseIp4.Text = "96";
             databaseIp4.Click += ipTextBox_click;
             databaseIp4.TextChanged += databaseIp4_TextChanged;
             // 
@@ -257,6 +265,7 @@
             databaseIp3.Name = "databaseIp3";
             databaseIp3.Size = new Size(33, 23);
             databaseIp3.TabIndex = 25;
+            databaseIp3.Text = "20";
             databaseIp3.Click += ipTextBox_click;
             databaseIp3.TextChanged += databaseIp3_TextChanged;
             // 
@@ -267,6 +276,7 @@
             databaseIp2.Name = "databaseIp2";
             databaseIp2.Size = new Size(33, 23);
             databaseIp2.TabIndex = 24;
+            databaseIp2.Text = "58";
             databaseIp2.Click += ipTextBox_click;
             databaseIp2.TextChanged += databaseIp2_TextChanged;
             // 
@@ -277,6 +287,7 @@
             databaseIp1.Name = "databaseIp1";
             databaseIp1.Size = new Size(33, 23);
             databaseIp1.TabIndex = 23;
+            databaseIp1.Text = "58";
             databaseIp1.Click += ipTextBox_click;
             databaseIp1.TextChanged += databaseIp1_TextChanged;
             // 
@@ -296,6 +307,7 @@
             exerciseIDTextBox.Name = "exerciseIDTextBox";
             exerciseIDTextBox.Size = new Size(79, 29);
             exerciseIDTextBox.TabIndex = 31;
+            exerciseIDTextBox.Text = "222";
             // 
             // Settings
             // 

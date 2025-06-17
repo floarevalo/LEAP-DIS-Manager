@@ -3,17 +3,17 @@ using System.Net;
 namespace LEAP_dis_manager
 {
     //Generic UI TODOs
-        //TODO: Don't let the user change settings while the UDP client is connected.
-            //Might also want to display a message box notifying them that they can't change settings while connected.
+    //TODO: Don't let the user change settings while the UDP client is connected.
+    //Might also want to display a message box notifying them that they can't change settings while connected.
 
-        //TODO: Think about filtering out unwanted characters in each text box entry  (ex: only allow numbers to be input for ports, IPs, etc.)
+    //TODO: Think about filtering out unwanted characters in each text box entry  (ex: only allow numbers to be input for ports, IPs, etc.)
 
-        //TODO: Restrict value inputs for text boxes (ex: Port can only be between 0-65535, IP octets can only be 0-255, etc.)
+    //TODO: Restrict value inputs for text boxes (ex: Port can only be between 0-65535, IP octets can only be 0-255, etc.)
 
-        //TODO: Add helper text by text boxes, notifying user of special cases that may not be apparent (ex: Excercise ID of -1 represents accepting all Exercise IDs, receive IP of 0.0.0.0 means to accept packets from any IP address, etc..)
+    //TODO: Add helper text by text boxes, notifying user of special cases that may not be apparent (ex: Excercise ID of -1 represents accepting all Exercise IDs, receive IP of 0.0.0.0 means to accept packets from any IP address, etc..)
 
-        //TODO: Think about adding a checkbox for receiving loopback traffic. Meaning, should my computer receive its own packets or not.
-            //Code already exists in the MainForm that should handle this, but is commented out as there is no checkbox to enable/disable it yet.
+    //TODO: Think about adding a checkbox for receiving loopback traffic. Meaning, should my computer receive its own packets or not.
+    //Code already exists in the MainForm that should handle this, but is commented out as there is no checkbox to enable/disable it yet.
 
     public partial class Settings : Form
     {
@@ -126,7 +126,7 @@ namespace LEAP_dis_manager
 
             recievingPortMTB.Text = receivingPort.ToString();
 
-            string[] databaseParts = databaseIpAddress.Split('.'); 
+            string[] databaseParts = databaseIpAddress.Split('.');
             if (databaseParts.Length == 4)
             {
                 databaseIp1.Text = databaseParts[0];
@@ -200,6 +200,11 @@ namespace LEAP_dis_manager
         private void databaseIp4_TextChanged(object sender, EventArgs e)
         {
             AdjustIpInput(databaseIp4);
+        }
+
+        private void Multicast_CheckedChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

@@ -12,6 +12,7 @@ namespace LEAP_dis_manager
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
             Application.Run(mainForm: new MainForm());
+
         }
     }
 }

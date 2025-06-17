@@ -1,13 +1,13 @@
-﻿using OpenDis.Dis1998;
+﻿using Npgsql;
 using OpenDis.Core;
-using System.ComponentModel;
+using OpenDis.Dis1998;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Net;
-using Npgsql;
+using System.ComponentModel;
 using System.Diagnostics;
-using System;
+using System.Net;
+using System.Net.Sockets;
 
 namespace LEAP_dis_manager
 {
@@ -45,11 +45,66 @@ namespace LEAP_dis_manager
             InitializeBackgroundWorker();
             LoadSettings();
 
+            //Manually adding all the entity IDs. 
+            //TODO: change it so that the erns(entityIDs) are pulled from the db
             leapDISEntityTypes = new HashSet<UInt64>();
+            leapDISEntityTypes.Add(10992);
+            leapDISEntityTypes.Add(10993);
+            leapDISEntityTypes.Add(10994);
+            leapDISEntityTypes.Add(11002);
+            leapDISEntityTypes.Add(11003);
+            leapDISEntityTypes.Add(11011);
+            leapDISEntityTypes.Add(1012);
+            leapDISEntityTypes.Add(11013);
+            leapDISEntityTypes.Add(11014);
+            leapDISEntityTypes.Add(11015);
+            leapDISEntityTypes.Add(11016);
+            leapDISEntityTypes.Add(11018);
+            leapDISEntityTypes.Add(11019);
+            leapDISEntityTypes.Add(11020);
+            leapDISEntityTypes.Add(11021);
+            leapDISEntityTypes.Add(11027);
+            leapDISEntityTypes.Add(11028);
+            leapDISEntityTypes.Add(11029);
+            leapDISEntityTypes.Add(11030);
+            leapDISEntityTypes.Add(11037);
+            leapDISEntityTypes.Add(11039);
+            leapDISEntityTypes.Add(11040);
+            leapDISEntityTypes.Add(11046);
+            leapDISEntityTypes.Add(11047);
+            leapDISEntityTypes.Add(11048);
+            leapDISEntityTypes.Add(11253);
+            leapDISEntityTypes.Add(11200);
+            leapDISEntityTypes.Add(11201);
+            leapDISEntityTypes.Add(11202);
+            leapDISEntityTypes.Add(11203);
+            leapDISEntityTypes.Add(11204);
+            leapDISEntityTypes.Add(11205);
+            leapDISEntityTypes.Add(11206);
+            leapDISEntityTypes.Add(11207);
+            leapDISEntityTypes.Add(11208);
+            leapDISEntityTypes.Add(11209);
+            leapDISEntityTypes.Add(11210);
+            leapDISEntityTypes.Add(11211);
+            leapDISEntityTypes.Add(11212);
+            leapDISEntityTypes.Add(11213);
+            leapDISEntityTypes.Add(11214);
+            leapDISEntityTypes.Add(11215);
+            leapDISEntityTypes.Add(11216);
+            leapDISEntityTypes.Add(11217);
+            leapDISEntityTypes.Add(11218);
+            leapDISEntityTypes.Add(11219);
+            leapDISEntityTypes.Add(11220);
+            leapDISEntityTypes.Add(11221);
+            leapDISEntityTypes.Add(11222);
+            leapDISEntityTypes.Add(11223);
+            leapDISEntityTypes.Add(11224);
+            //leapDISEntityTypes.Add(723391694654364940);
+            //leapDISEntityTypes.Add(217018310884122881);
             //leapDISEntityTypes.Add(217018310884122881); //UInt64 value for F16 Vipers, received from debugging the EntityTypeToUInt64 function to get its return value -- Entity Type of 1.2.225.1.3.3.1
 
             //TODO: Read from database to initialize the leapDISEntityTypes hash set with acceptable DIS Entity Types
-                //This should be the list of all unit types that are supported within LEAP
+            //This should be the list of all unit types that are supported within LEAP
         }
 
         private void LoadSettings()
@@ -74,21 +129,24 @@ namespace LEAP_dis_manager
 
         private void openSettings(object sender, EventArgs e)
         {
-            if (settingsForm == null || settingsForm.IsDisposed)        //Checks to see if settings are not found/disposed of and creates a new instance of the Settings form if so
+            if (settingsForm == null || settingsForm.IsDisposed)
             {
                 settingsForm = new Settings(this, receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID);
             }
 
             settingsForm.Show();
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
         public void beginReceiving()
         {
-            isCancelled = true;
+            isCancelled = false;
             exception = null;
-            receiveThread = new Thread(new ThreadStart(BeginReceive));
-            receiveThread.Start();
-            receiveThread.Join();
+            BeginReceive();
+            //receiveThread = new Thread(new ThreadStart(BeginReceive));
+            //receiveThread.Start();
+            //receiveThread.Join();
             if (exception != null) { MessageBox.Show("Failed to connect receive socket!"); }
         }
 
@@ -97,7 +155,7 @@ namespace LEAP_dis_manager
             isCancelled = true;
             client?.Close();
             //If the receive thread is still awaiting joining back with the main thread, interrupt it.
-            receiveThread.Interrupt();
+            //receiveThread.Interrupt();
             SetButtonState(false);
         }
 
@@ -121,7 +179,7 @@ namespace LEAP_dis_manager
                 //Make the receive socket non-binding to make the IP Endpoint reusable
                 client = new UdpClient();
                 client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                client.ExclusiveAddressUse = false;
+                //client.ExclusiveAddressUse = false;
                 client.Client.Bind(epReceive);
 
                 //TODO: Actually test multicast
@@ -134,7 +192,8 @@ namespace LEAP_dis_manager
                     epReceive = new IPEndPoint(IPAddress.Any, receivingPort);
                     client.JoinMulticastGroup(IPAddress.Parse(receivingIpAddress));
                 }
-                client.BeginReceive(new AsyncCallback(asyncReceive), client);
+;
+                client.BeginReceive(new AsyncCallback(asyncReceive), null);
             }
             catch (SocketException ex)
             {
@@ -196,21 +255,27 @@ namespace LEAP_dis_manager
                     Pdu pdu = PduProcessor.ConvertByteArrayToPdu1998(receivedBytes[2], receivedBytes, Endian.Big);
 
                     //Using values less than 1 to represent any exercise ID -- No reason for this, just the way we decided..
-                    if (pdu.ExerciseID == exerciseID || exerciseID < 1)
+                    if (pdu.ExerciseID == exerciseID || exerciseID == 0)
                     {
                         switch (pdu)
                         {
                             //Verify the received PDU is an ESPDU
                             case EntityStatePdu espdu:
+                                
                                 //Verify that the entity described in the PDU is supported by LEAP
                                 //NOTE: Here we only care about the Entity Type. The entity type is what determines the type of unit (ex: F-16, F-22, INF, etc.). This will filter unit types.
-                                if (leapDISEntityTypes.Contains(EntityTypeToUInt64(espdu.EntityType)))
-                                {
+                                if (leapDISEntityTypes.Contains(UInt64.Parse(espdu.EntityID.Entity.ToString())))
+                                    
+
+                               {
+
                                     /*Debug.WriteLine(Syste0m.Text.Encoding.UTF8.GetString(espdu.Marking.Characters, 0, espdu.Marking.Characters.Length));
+
                                     Debug.WriteLine("");*/
                                     sendToDatabase(databaseIpAddress, databasePort, espdu);
+
                                 }
-                                break;
+                                    break;
                         }
                     }
                 }
@@ -224,6 +289,7 @@ namespace LEAP_dis_manager
         /// <returns>The UInt64 representation of the Entity Type.</returns>
         public static UInt64 EntityTypeToUInt64(EntityType entityType)
         {
+            
             byte category = entityType.Category;
             ushort country = entityType.Country;
             byte domain = entityType.Domain;
@@ -261,27 +327,46 @@ namespace LEAP_dis_manager
                 conn.Open();
 
                 //Check the database to see if a unit with the given Entity ID already exists
-                string query = "SELECT COUNT(*) FROM units WHERE id = @entityId";
+                //this assumes that we use appplication_id and site_id to distinguish between different entities
+                string query = "SELECT COUNT(*) FROM units WHERE unit_ern = @unit_ern AND site_id = @site_id AND application_id = @application_id";
                 using NpgsqlCommand checkCommand = new NpgsqlCommand(query, conn);
-                checkCommand.Parameters.AddWithValue("@entityId", entity.EntityID);
+                byte[] markingCharacters = entity.Marking.Characters;
+                int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
+                string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, nullIndex);
+                int length = (unit_name.Length < 12) ? unit_name.Length : 11;
+
+                unit_name = unit_name.Substring(0, length);
+                int unit_ern = entity.EntityID.Entity;
+                int application_id = entity.EntityID.Application;
+                int site_id = entity.EntityID.Site;
+
+
+                checkCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
+                checkCommand.Parameters.AddWithValue("@application_id", application_id);
+                checkCommand.Parameters.AddWithValue("@site_id", site_id);
 
                 int count = Convert.ToInt32(checkCommand.ExecuteScalar());
                 
                 if (count == 0)
                 {
                     //If a unit with the given Entity ID does not exist in the database, add it
-                    bool allegiance = (entity.ForceId == 1);
-                   
-                    string insertQuery = "INSERT INTO UNITS (id, isFriendly, unit_id, xcord, ycord, zcord) VALUES (@entityID, @allegiance, @entityMarking, @xcord, @ycord, @zcord)";
+                    
+                    string insertQuery = "INSERT INTO UNITS (unit_name, unit_ern, application_id, site_id, xcord, ycord, zcord) VALUES (@unit_name, @unit_ern , @application_id, @site_id, @xcord, @ycord, @zcord)";
                     using NpgsqlCommand insertCommand = new NpgsqlCommand(insertQuery, conn);
-                    insertCommand.Parameters.AddWithValue("@entityId", entity.EntityID);
-                    insertCommand.Parameters.AddWithValue("@allegiance", allegiance);
-                    insertCommand.Parameters.AddWithValue("@entityMarking", entity.Marking);
+                    insertCommand.Parameters.AddWithValue("@unit_name", unit_name);
+
+                    insertCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
+                    insertCommand.Parameters.AddWithValue("@application_id", application_id);
+                    insertCommand.Parameters.AddWithValue("@site_id", site_id);
+
+
+
+
                     insertCommand.Parameters.AddWithValue("@xcord", entity.EntityLocation.X);
                     insertCommand.Parameters.AddWithValue("@ycord", entity.EntityLocation.Y);
                     insertCommand.Parameters.AddWithValue("@zcord", entity.EntityLocation.Z);
 
-                    //Checks to see if the Entity ID was inserted successfully, should return 1 if successful
+
                     int rowsAffected = insertCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {
@@ -295,14 +380,24 @@ namespace LEAP_dis_manager
                 else
                 {
                     //If a unit with the given Entity ID exists in the database, update it
-                    string updateQuery = "UPDATE UNITS SET xcord = @xcord, ycord = @ycord, zcord = @zcord WHERE id = @entityID";
+                    string updateQuery = "UPDATE UNITS SET unit_name = @unit_name, unit_ern = @unit_ern, application_id = @application_id, site_id = @site_id, xcord = @xcord, ycord = @ycord, zcord =  @zcord" +
+                        " WHERE unit_ern = @unit_ern AND site_id = @site_id AND application_id = @application_id";
                     using NpgsqlCommand updateCommand = new NpgsqlCommand(updateQuery, conn);
 
-                    updateCommand.Parameters.AddWithValue("@entityId", entity.EntityID);
+
+
+                    updateCommand.Parameters.AddWithValue("@unit_name", unit_name);
+
+                    updateCommand.Parameters.AddWithValue("@unit_ern",unit_ern);
+                    updateCommand.Parameters.AddWithValue("@application_id", application_id);
+                    updateCommand.Parameters.AddWithValue("@site_id", site_id);
+
+
+
+
                     updateCommand.Parameters.AddWithValue("@xcord", entity.EntityLocation.X);
                     updateCommand.Parameters.AddWithValue("@ycord", entity.EntityLocation.Y);
                     updateCommand.Parameters.AddWithValue("@zcord", entity.EntityLocation.Z);
-
                     int rowsAffected = updateCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {

@@ -18,7 +18,6 @@ namespace LEAP_dis_manager
     public partial class Settings : Form
     {
         private MainForm mainForm;
-        public string sectionID = "";
         public string receivingIpAddress;
         public int receivingPort;
         public string databaseIpAddress;
@@ -26,7 +25,7 @@ namespace LEAP_dis_manager
         public bool isMulticast;
         public int exerciseID;
 
-        public Settings(MainForm mainForm, string receivingIpAddress, int receivingPort, string databaseIpAddress, int databasePort, bool isMulticast, int exerciseID, string sectionID)
+        public Settings(MainForm mainForm, string receivingIpAddress, int receivingPort, string databaseIpAddress, int databasePort, bool isMulticast, int exerciseID)
         {
             InitializeComponent();
 
@@ -37,7 +36,6 @@ namespace LEAP_dis_manager
             this.databasePort = databasePort;
             this.isMulticast = isMulticast;
             this.exerciseID = exerciseID;
-            this.sectionID = sectionID;
         }
 
         private void OK_Click(object sender, EventArgs e)
@@ -101,7 +99,7 @@ namespace LEAP_dis_manager
             }
 
             // Save settings to MainForm and Properties.Settings
-            mainForm.SaveSettings(receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID, sectionID);
+            mainForm.SaveSettings(receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID);
 
             Properties.Settings.Default.isMulticast = isMulticast;
             Properties.Settings.Default.receivingIpAddress = receivingIpAddress;
@@ -109,7 +107,6 @@ namespace LEAP_dis_manager
             Properties.Settings.Default.databaseIpAddress = databaseIpAddress;
             Properties.Settings.Default.databasePort = databasePort;
             Properties.Settings.Default.exerciseID = exerciseID;
-            //Properties.Settings.Default.sectionID = sectionID;
             Properties.Settings.Default.Save();
 
             this.Close();

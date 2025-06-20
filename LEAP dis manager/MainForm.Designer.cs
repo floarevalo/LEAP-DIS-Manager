@@ -43,6 +43,10 @@
             Start_button = new Button();
             sectionIDTextBox = new TextBox();
             label10 = new Label();
+            label1 = new Label();
+            label2 = new Label();
+            siteIdUpDown = new NumericUpDown();
+            ((System.ComponentModel.ISupportInitialize)siteIdUpDown).BeginInit();
             SuspendLayout();
             // 
             // button1
@@ -102,11 +106,40 @@
             label10.TabIndex = 34;
             label10.Text = "Section ID:";
             // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(0, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(38, 15);
+            label1.TabIndex = 37;
+            label1.Text = "label1";
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(286, 129);
+            label2.Name = "label2";
+            label2.Size = new Size(43, 15);
+            label2.TabIndex = 38;
+            label2.Text = "Site ID:";
+            // 
+            // siteIdUpDown
+            // 
+            siteIdUpDown.Location = new Point(286, 148);
+            siteIdUpDown.Name = "siteIdUpDown";
+            siteIdUpDown.Size = new Size(120, 23);
+            siteIdUpDown.TabIndex = 39;
+            siteIdUpDown.ValueChanged += siteIdUpDown_ValueChanged;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(534, 220);
+            Controls.Add(siteIdUpDown);
+            Controls.Add(label2);
+            Controls.Add(label1);
             Controls.Add(sectionIDTextBox);
             Controls.Add(label10);
             Controls.Add(Start_button);
@@ -116,6 +149,7 @@
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainForm";
             Text = "LEAP Dis Listener";
+            ((System.ComponentModel.ISupportInitialize)siteIdUpDown).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -128,5 +162,8 @@
         private Button Start_button;
         private TextBox sectionIDTextBox;
         private Label label10;
+        private Label label1;
+        private Label label2;
+        private NumericUpDown siteIdUpDown;
     }
 }

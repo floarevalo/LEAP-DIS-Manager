@@ -13,7 +13,7 @@ namespace LEAP_dis_manager
 {
     //Generic UI TODOs
     //TODO: Add in text fields to display the current settings the user has applied. This will let the user see their settings without needing to open the Settings menu.
-        //Could also display if the UDP socket is connected yet or not.
+    //Could also display if the UDP socket is connected yet or not.
 
     public partial class MainForm : Form
     {
@@ -28,6 +28,7 @@ namespace LEAP_dis_manager
         private bool isMulticast;
         private int exerciseID;
         private string sectionID = "";
+        private int siteID;
         private ConcurrentQueue<byte[]> receivedByteQueue;
         private UdpClient client;
         private IPEndPoint epReceive;
@@ -39,66 +40,68 @@ namespace LEAP_dis_manager
 
         private BackgroundWorker listenWorker;
 
+        private HashSet<string> supportedEntityTypeNames;
+
         public MainForm()
         {
             InitializeComponent();
             InitializeBackgroundWorker();
             LoadSettings();
-
+            LoadEntityNamesFromDatabase();
             //Manually adding all the entity IDs. 
             //TODO: change it so that the erns(entityIDs) are pulled from the db
-            leapDISEntityTypes = new HashSet<UInt64>();
-            leapDISEntityTypes.Add(10992);
-            leapDISEntityTypes.Add(10993);
-            leapDISEntityTypes.Add(10994);
-            leapDISEntityTypes.Add(11002);
-            leapDISEntityTypes.Add(11003);
-            leapDISEntityTypes.Add(11011);
-            leapDISEntityTypes.Add(1012);
-            leapDISEntityTypes.Add(11013);
-            leapDISEntityTypes.Add(11014);
-            leapDISEntityTypes.Add(11015);
-            leapDISEntityTypes.Add(11016);
-            leapDISEntityTypes.Add(11018);
-            leapDISEntityTypes.Add(11019);
-            leapDISEntityTypes.Add(11020);
-            leapDISEntityTypes.Add(11021);
-            leapDISEntityTypes.Add(11027);
-            leapDISEntityTypes.Add(11028);
-            leapDISEntityTypes.Add(11029);
-            leapDISEntityTypes.Add(11030);
-            leapDISEntityTypes.Add(11037);
-            leapDISEntityTypes.Add(11039);
-            leapDISEntityTypes.Add(11040);
-            leapDISEntityTypes.Add(11046);
-            leapDISEntityTypes.Add(11047);
-            leapDISEntityTypes.Add(11048);
-            leapDISEntityTypes.Add(11253);
-            leapDISEntityTypes.Add(11200);
-            leapDISEntityTypes.Add(11201);
-            leapDISEntityTypes.Add(11202);
-            leapDISEntityTypes.Add(11203);
-            leapDISEntityTypes.Add(11204);
-            leapDISEntityTypes.Add(11205);
-            leapDISEntityTypes.Add(11206);
-            leapDISEntityTypes.Add(11207);
-            leapDISEntityTypes.Add(11208);
-            leapDISEntityTypes.Add(11209);
-            leapDISEntityTypes.Add(11210);
-            leapDISEntityTypes.Add(11211);
-            leapDISEntityTypes.Add(11212);
-            leapDISEntityTypes.Add(11213);
-            leapDISEntityTypes.Add(11214);
-            leapDISEntityTypes.Add(11215);
-            leapDISEntityTypes.Add(11216);
-            leapDISEntityTypes.Add(11217);
-            leapDISEntityTypes.Add(11218);
-            leapDISEntityTypes.Add(11219);
-            leapDISEntityTypes.Add(11220);
-            leapDISEntityTypes.Add(11221);
-            leapDISEntityTypes.Add(11222);
-            leapDISEntityTypes.Add(11223);
-            leapDISEntityTypes.Add(11224);
+            //leapDISEntityTypes = new HashSet<UInt64>();
+            //leapDISEntityTypes.Add(10992);
+            //leapDISEntityTypes.Add(10993);
+            //leapDISEntityTypes.Add(10994);
+            //leapDISEntityTypes.Add(11002);
+            //leapDISEntityTypes.Add(11003);
+            //leapDISEntityTypes.Add(11011);
+            //leapDISEntityTypes.Add(1012);
+            //leapDISEntityTypes.Add(11013);
+            //leapDISEntityTypes.Add(11014);
+            //leapDISEntityTypes.Add(11015);
+            //leapDISEntityTypes.Add(11016);
+            //leapDISEntityTypes.Add(11018);
+            //leapDISEntityTypes.Add(11019);
+            //leapDISEntityTypes.Add(11020);
+            //leapDISEntityTypes.Add(11021);
+            //leapDISEntityTypes.Add(11027);
+            //leapDISEntityTypes.Add(11028);
+            //leapDISEntityTypes.Add(11029);
+            //leapDISEntityTypes.Add(11030);
+            //leapDISEntityTypes.Add(11037);
+            //leapDISEntityTypes.Add(11039);
+            //leapDISEntityTypes.Add(11040);
+            //leapDISEntityTypes.Add(11046);
+            //leapDISEntityTypes.Add(11047);
+            //leapDISEntityTypes.Add(11048);
+            //leapDISEntityTypes.Add(11253);
+            //leapDISEntityTypes.Add(11200);
+            //leapDISEntityTypes.Add(11201);
+            //leapDISEntityTypes.Add(11202);
+            //leapDISEntityTypes.Add(11203);
+            //leapDISEntityTypes.Add(11204);
+            //leapDISEntityTypes.Add(11205);
+            //leapDISEntityTypes.Add(11206);
+            //leapDISEntityTypes.Add(11207);
+            //leapDISEntityTypes.Add(11208);
+            //leapDISEntityTypes.Add(11209);
+            //leapDISEntityTypes.Add(11210);
+            //leapDISEntityTypes.Add(11211);
+            //leapDISEntityTypes.Add(11212);
+            //leapDISEntityTypes.Add(11213);
+            //leapDISEntityTypes.Add(11214);
+            //leapDISEntityTypes.Add(11215);
+            //leapDISEntityTypes.Add(11216);
+            //leapDISEntityTypes.Add(11217);
+            //leapDISEntityTypes.Add(11218);
+            //leapDISEntityTypes.Add(11219);
+            //leapDISEntityTypes.Add(11220);
+            //leapDISEntityTypes.Add(11221);
+            //leapDISEntityTypes.Add(11222);
+            //leapDISEntityTypes.Add(11223);
+            //leapDISEntityTypes.Add(11224);
             //leapDISEntityTypes.Add(723391694654364940);
             //leapDISEntityTypes.Add(217018310884122881);
             //leapDISEntityTypes.Add(217018310884122881); //UInt64 value for F16 Vipers, received from debugging the EntityTypeToUInt64 function to get its return value -- Entity Type of 1.2.225.1.3.3.1
@@ -107,6 +110,38 @@ namespace LEAP_dis_manager
             //This should be the list of all unit types that are supported within LEAP
         }
 
+        private void LoadEntityNamesFromDatabase()
+        {
+            supportedEntityTypeNames = new HashSet<string>();
+
+            string userId = "postgres";
+            string password = "postgres";
+            string databaseName = "LEAP";
+            string connectionString = $"Host={databaseIpAddress};Port={databasePort};Database={databaseName};User Id={userId};Password={password};";
+
+            try
+            {
+                using var conn = new NpgsqlConnection(connectionString);
+                conn.Open();
+
+                string query = "SELECT unit_name FROM preset_units";
+                using var cmd = new NpgsqlCommand(query, conn);
+                using var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    string name = reader.GetString(0).Trim();
+                    if (!string.IsNullOrEmpty(name))
+                        supportedEntityTypeNames.Add(name);
+                }
+
+                Console.WriteLine($"Loaded {supportedEntityTypeNames.Count} supported entity names.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading entity names: {ex.Message}");
+            }
+        }
         private void LoadSettings()
         {
             receivingIpAddress = Properties.Settings.Default.receivingIpAddress;
@@ -115,10 +150,12 @@ namespace LEAP_dis_manager
             databasePort = Properties.Settings.Default.databasePort;
             isMulticast = Properties.Settings.Default.isMulticast;
             exerciseID = Properties.Settings.Default.exerciseID;
+            siteID = Properties.Settings.Default.siteID;
+            siteIdUpDown.Value = siteID;
             //sectionID = Properties.Settings.Default.sectionID;
         }
 
-        public void SaveSettings(string newReceivingIpAddress, int newReceivingPort, string newDatabaseIpAddress, int newDatabasePort, bool newIsMulticast, int newExerciseID, string newSectionID)
+        public void SaveSettings(string newReceivingIpAddress, int newReceivingPort, string newDatabaseIpAddress, int newDatabasePort, bool newIsMulticast, int newExerciseID)
         {
             receivingIpAddress = newReceivingIpAddress;
             receivingPort = newReceivingPort;
@@ -126,14 +163,13 @@ namespace LEAP_dis_manager
             databasePort = newDatabasePort;
             isMulticast = newIsMulticast;
             exerciseID = newExerciseID;
-            sectionID = newSectionID;
         }
 
         private void openSettings(object sender, EventArgs e)
         {
             if (settingsForm == null || settingsForm.IsDisposed)
             {
-                settingsForm = new Settings(this, receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID, sectionID);
+                settingsForm = new Settings(this, receivingIpAddress, receivingPort, databaseIpAddress, databasePort, isMulticast, exerciseID);
             }
 
             settingsForm.Show();
@@ -263,13 +299,19 @@ namespace LEAP_dis_manager
                         {
                             //Verify the received PDU is an ESPDU
                             case EntityStatePdu espdu:
-                                
-                                //Verify that the entity described in the PDU is supported by LEAP
-                                //NOTE: Here we only care about the Entity Type. The entity type is what determines the type of unit (ex: F-16, F-22, INF, etc.). This will filter unit types.
-                                if (leapDISEntityTypes.Contains(UInt64.Parse(espdu.EntityID.Entity.ToString())))
-                                    
+                                int disSiteID = espdu.EntityID.Site;
+                                byte[] markingCharacters = espdu.Marking.Characters;
+                                int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
+                                string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, nullIndex);
+                                int length = (unit_name.Length < 12) ? unit_name.Length : 11;
 
-                               {
+                                unit_name = unit_name.Substring(0, length);
+                                //Verify that the entity described in the PDU is supported by LEAP and the disSiteID is equal to the siteID entered by the teacher
+                                //NOTE: Here we only care about the Entity Type. The entity type is what determines the type of unit (ex: F-16, F-22, INF, etc.). This will filter unit types.
+                                if (supportedEntityTypeNames.Contains(unit_name) && disSiteID == siteID)
+
+
+                                {
 
                                     /*Debug.WriteLine(Syste0m.Text.Encoding.UTF8.GetString(espdu.Marking.Characters, 0, espdu.Marking.Characters.Length));
 
@@ -277,7 +319,7 @@ namespace LEAP_dis_manager
                                     sendToDatabase(databaseIpAddress, databasePort, espdu);
 
                                 }
-                                    break;
+                                break;
                         }
                     }
                 }
@@ -291,7 +333,7 @@ namespace LEAP_dis_manager
         /// <returns>The UInt64 representation of the Entity Type.</returns>
         public static UInt64 EntityTypeToUInt64(EntityType entityType)
         {
-            
+
             byte category = entityType.Category;
             ushort country = entityType.Country;
             byte domain = entityType.Domain;
@@ -302,7 +344,7 @@ namespace LEAP_dis_manager
 
             UInt64 entityType64 = ((UInt64)subcategory << 56) | ((UInt64)specific << 48) | ((UInt64)extra << 40) | ((UInt64)entityKind << 32) |
                                   ((UInt64)domain << 24) | ((UInt64)country << 8) | (UInt64)category;
-            
+
             //For debug
             //string binary = UInt64ToString(entityType64);
 
@@ -336,7 +378,7 @@ namespace LEAP_dis_manager
                 int site_id = entity.EntityID.Site;
                 using NpgsqlConnection conn = new NpgsqlConnection(connectionString);
                 conn.Open();
-                
+
                 //Check the database to see if a unit with the given Entity ID already exists
                 //this assumes that we use appplication_id and site_id to distinguish between different entities
                 string query = "SELECT COUNT(*) FROM dis WHERE section_id = @section_id AND unit_name = @unit_name";
@@ -349,11 +391,11 @@ namespace LEAP_dis_manager
 
 
                 int count = Convert.ToInt32(checkCommand.ExecuteScalar());
-                
+
                 if (count == 0)
                 {
                     //If a unit with the given Entity ID does not exist in the database, add it
-                    
+
                     string insertQuery = "INSERT INTO dis (unit_name, section_id, unit_ern, application_id, site_id, xcord, ycord, zcord) VALUES (@unit_name, @section_id, @unit_ern , @application_id, @site_id, @xcord, @ycord, @zcord)";
                     using NpgsqlCommand insertCommand = new NpgsqlCommand(insertQuery, conn);
                     insertCommand.Parameters.AddWithValue("@unit_name", unit_name);
@@ -394,7 +436,7 @@ namespace LEAP_dis_manager
                     updateCommand.Parameters.AddWithValue("@unit_name", unit_name);
                     //sectionID is a global variable
                     updateCommand.Parameters.AddWithValue("@section_id", sectionID);
-                    updateCommand.Parameters.AddWithValue("@unit_ern",unit_ern);
+                    updateCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
                     updateCommand.Parameters.AddWithValue("@application_id", application_id);
                     updateCommand.Parameters.AddWithValue("@site_id", site_id);
 
@@ -458,7 +500,7 @@ namespace LEAP_dis_manager
 
         private void run(object sender, EventArgs e)
         {
-            
+
             if (Start_button.Text == "Start")
             {
 
@@ -507,6 +549,13 @@ namespace LEAP_dis_manager
         private void sectionIDTextBox_TextChanged(object sender, EventArgs e)
         {
             sectionID = sectionIDTextBox.Text;
+        }
+
+        private void siteIdUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            siteID = (int)siteIdUpDown.Value;
+            Properties.Settings.Default.siteID = siteID;
+            Properties.Settings.Default.Save();
         }
     }
 }

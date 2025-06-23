@@ -302,7 +302,8 @@ namespace LEAP_dis_manager
                                 int disSiteID = espdu.EntityID.Site;
                                 byte[] markingCharacters = espdu.Marking.Characters;
                                 int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
-                                string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, nullIndex);
+                                int byteLength = (nullIndex >= 0) ? nullIndex : markingCharacters.Length; // If no null, read all 11
+                                string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, byteLength);
                                 int length = (unit_name.Length < 12) ? unit_name.Length : 11;
 
                                 unit_name = unit_name.Substring(0, length);
@@ -369,7 +370,8 @@ namespace LEAP_dis_manager
             {
                 byte[] markingCharacters = entity.Marking.Characters;
                 int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
-                string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, nullIndex);
+                int byteLength = (nullIndex >= 0) ? nullIndex : markingCharacters.Length; // If no null, read all 11
+                string unit_name = System.Text.Encoding.Default.GetString(markingCharacters, 0, byteLength);
                 int length = (unit_name.Length < 12) ? unit_name.Length : 11;
 
                 unit_name = unit_name.Substring(0, length);

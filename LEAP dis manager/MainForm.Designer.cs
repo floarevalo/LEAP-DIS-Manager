@@ -41,11 +41,11 @@
             title_label = new Label();
             close_button = new Button();
             Start_button = new Button();
-            sectionIDTextBox = new TextBox();
-            label10 = new Label();
             label1 = new Label();
             label2 = new Label();
             siteIdUpDown = new NumericUpDown();
+            comboBox1 = new ComboBox();
+            button2 = new Button();
             ((System.ComponentModel.ISupportInitialize)siteIdUpDown).BeginInit();
             SuspendLayout();
             // 
@@ -89,36 +89,20 @@
             Start_button.UseVisualStyleBackColor = true;
             Start_button.Click += run;
             // 
-            // sectionIDTextBox
-            // 
-            sectionIDTextBox.Location = new Point(422, 147);
-            sectionIDTextBox.Name = "sectionIDTextBox";
-            sectionIDTextBox.Size = new Size(100, 23);
-            sectionIDTextBox.TabIndex = 35;
-            sectionIDTextBox.TextChanged += sectionIDTextBox_TextChanged;
-            // 
-            // label10
-            // 
-            label10.AutoSize = true;
-            label10.Location = new Point(422, 129);
-            label10.Name = "label10";
-            label10.Size = new Size(63, 15);
-            label10.TabIndex = 34;
-            label10.Text = "Section ID:";
-            // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(0, 0);
+            label1.Location = new Point(264, 129);
             label1.Name = "label1";
-            label1.Size = new Size(38, 15);
+            label1.Size = new Size(68, 15);
             label1.TabIndex = 37;
-            label1.Text = "label1";
+            label1.Text = "Section IDs:";
+            label1.Click += label1_Click;
             // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(286, 129);
+            label2.Location = new Point(402, 129);
             label2.Name = "label2";
             label2.Size = new Size(43, 15);
             label2.TabIndex = 38;
@@ -126,22 +110,42 @@
             // 
             // siteIdUpDown
             // 
-            siteIdUpDown.Location = new Point(286, 148);
+            siteIdUpDown.Location = new Point(402, 149);
             siteIdUpDown.Name = "siteIdUpDown";
             siteIdUpDown.Size = new Size(120, 23);
             siteIdUpDown.TabIndex = 39;
             siteIdUpDown.ValueChanged += siteIdUpDown_ValueChanged;
+            // 
+            // comboBox1
+            // 
+            comboBox1.FormattingEnabled = true;
+            comboBox1.Location = new Point(264, 149);
+            comboBox1.Name = "comboBox1";
+            comboBox1.Size = new Size(121, 23);
+            comboBox1.TabIndex = 40;
+            comboBox1.DropDown += comboBox1_DropDown;
+            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+            // 
+            // button2
+            // 
+            button2.Location = new Point(134, 129);
+            button2.Name = "button2";
+            button2.Size = new Size(115, 42);
+            button2.TabIndex = 41;
+            button2.Text = "Create New Section ID";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += create_new_scenario;
             // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(534, 220);
+            Controls.Add(button2);
+            Controls.Add(comboBox1);
             Controls.Add(siteIdUpDown);
             Controls.Add(label2);
             Controls.Add(label1);
-            Controls.Add(sectionIDTextBox);
-            Controls.Add(label10);
             Controls.Add(Start_button);
             Controls.Add(close_button);
             Controls.Add(title_label);
@@ -160,10 +164,10 @@
         private Label title_label;
         private Button close_button;
         private Button Start_button;
-        private TextBox sectionIDTextBox;
-        private Label label10;
         private Label label1;
         private Label label2;
         private NumericUpDown siteIdUpDown;
+        private ComboBox comboBox1;
+        private Button button2;
     }
 }

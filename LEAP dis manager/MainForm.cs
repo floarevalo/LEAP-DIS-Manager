@@ -20,7 +20,7 @@ namespace LEAP_dis_manager
         private HashSet<UInt64> leapDISEntityTypes;
 
         private Settings settingsForm;
-
+        private ScenarioInputForm newScenario;
         private string receivingIpAddress;
         private int receivingPort;
         private string databaseIpAddress;
@@ -548,16 +548,75 @@ namespace LEAP_dis_manager
                 Start_button.Text = "Start";
             }
         }
-        private void sectionIDTextBox_TextChanged(object sender, EventArgs e)
-        {
-            sectionID = sectionIDTextBox.Text;
-        }
+
 
         private void siteIdUpDown_ValueChanged(object sender, EventArgs e)
         {
             siteID = (int)siteIdUpDown.Value;
             Properties.Settings.Default.siteID = siteID;
             Properties.Settings.Default.Save();
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void LoadUnitsIntoComboBox()
+        {
+            List<string> sectionIDs = new List<string>();
+
+            string userId = "postgres";
+            string password = "postgres";
+            string databaseName = "LEAP";
+            string connectionString = $"Host={databaseIpAddress};Port={databasePort};Database={databaseName};User Id={userId};Password={password};";
+
+            try
+            {
+                using var conn = new NpgsqlConnection(connectionString);
+                conn.Open();
+
+                string query = "SELECT sectionid FROM sections";
+                using var cmd = new NpgsqlCommand(query, conn);
+                using var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    string sectionID = reader.GetString(0).Trim();
+                    if (!string.IsNullOrEmpty(sectionID))
+                        sectionIDs.Add(sectionID);
+                }
+                comboBox1.Items.Clear(); // Optional: clear old items first
+                foreach (string id in sectionIDs)
+                {
+                    comboBox1.Items.Add(id);
+                }
+                Console.WriteLine($"Loaded {sectionIDs.Count} sectionIDs.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading entity names: {ex.Message}");
+            }
+        }
+
+
+        private void comboBox1_DropDown(object sender, EventArgs e)
+        {
+            comboBox1.Items.Clear();
+            LoadUnitsIntoComboBox();
+
+        }
+
+        private void create_new_scenario(object sender, EventArgs e)
+        {
+            newScenario = new ScenarioInputForm();
+            newScenario.ShowDialog();
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            sectionID = comboBox1.SelectedItem.ToString();
         }
     }
 }

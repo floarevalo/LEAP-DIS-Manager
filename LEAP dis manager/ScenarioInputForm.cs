@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 
 namespace LEAP_dis_manager
 {
@@ -103,6 +104,11 @@ namespace LEAP_dis_manager
 
         private void OK_Click(object sender, EventArgs e)
         {
+            if (!Regex.IsMatch(sectionId, @"^[a-zA-Z0-9 _-]+$"))
+            {
+                MessageBox.Show("Section ID can only contain letters, numbers, spaces, dashes, and underscores. Invalid Input");
+                return;
+            }
             addSectionId(sectionId, databaseIpAddress, databasePort);
         }
 

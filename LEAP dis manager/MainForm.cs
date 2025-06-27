@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿// Required namespaces for DIS processing, networking, multithreading, PostgreSQL access, and UI handling
+using Npgsql;
 using OpenDis.Core;
 using OpenDis.Dis1998;
 using System;
@@ -17,8 +18,8 @@ namespace LEAP_dis_manager
 
     public partial class MainForm : Form
     {
+        // Fields for DIS filtering, settings, and data processing
         private HashSet<UInt64> leapDISEntityTypes;
-
         private Settings settingsForm;
         private ScenarioInputForm newScenario;
         private string receivingIpAddress;
@@ -27,90 +28,61 @@ namespace LEAP_dis_manager
         private int databasePort;
         private bool isMulticast;
         private int exerciseID;
-        private string sectionID = "";
+        private string sectionID = ""; // Active scenario ID
         private int siteID;
+
+        // Thread-safe queue to hold received UDP packets
         private ConcurrentQueue<byte[]> receivedByteQueue;
+
+        // UDP Client and related networking objects
         private UdpClient client;
         private IPEndPoint epReceive;
 
+        // Thread to manage UDP receiving
         private Thread receiveThread;
         private string LocalIPAddress;
+
+        // Control flags
         private bool isCancelled = false;
         private Exception exception;
 
-        private BackgroundWorker listenWorker;
+        // BackgroundWorker to process packets
+        private BackgroundWorker listenWorker; // Background processor for parsing packets
 
+        // Names of unit types supported by LEAP (from database)
         private HashSet<string> supportedEntityTypeNames;
 
+        // Dictionary to track last received timestamps per unit
+        private Dictionary<string, string> entityTimestamps; 
+
+        // Timeout detection
+        private System.Windows.Forms.Timer entityTimeoutTimer;
+        private DateTime lastEntityReceivedTime;
         public MainForm()
         {
             InitializeComponent();
-            InitializeBackgroundWorker();
-            LoadSettings();
-            LoadEntityNamesFromDatabase();
-            //Manually adding all the entity IDs. 
-            //TODO: change it so that the erns(entityIDs) are pulled from the db
-            //leapDISEntityTypes = new HashSet<UInt64>();
-            //leapDISEntityTypes.Add(10992);
-            //leapDISEntityTypes.Add(10993);
-            //leapDISEntityTypes.Add(10994);
-            //leapDISEntityTypes.Add(11002);
-            //leapDISEntityTypes.Add(11003);
-            //leapDISEntityTypes.Add(11011);
-            //leapDISEntityTypes.Add(1012);
-            //leapDISEntityTypes.Add(11013);
-            //leapDISEntityTypes.Add(11014);
-            //leapDISEntityTypes.Add(11015);
-            //leapDISEntityTypes.Add(11016);
-            //leapDISEntityTypes.Add(11018);
-            //leapDISEntityTypes.Add(11019);
-            //leapDISEntityTypes.Add(11020);
-            //leapDISEntityTypes.Add(11021);
-            //leapDISEntityTypes.Add(11027);
-            //leapDISEntityTypes.Add(11028);
-            //leapDISEntityTypes.Add(11029);
-            //leapDISEntityTypes.Add(11030);
-            //leapDISEntityTypes.Add(11037);
-            //leapDISEntityTypes.Add(11039);
-            //leapDISEntityTypes.Add(11040);
-            //leapDISEntityTypes.Add(11046);
-            //leapDISEntityTypes.Add(11047);
-            //leapDISEntityTypes.Add(11048);
-            //leapDISEntityTypes.Add(11253);
-            //leapDISEntityTypes.Add(11200);
-            //leapDISEntityTypes.Add(11201);
-            //leapDISEntityTypes.Add(11202);
-            //leapDISEntityTypes.Add(11203);
-            //leapDISEntityTypes.Add(11204);
-            //leapDISEntityTypes.Add(11205);
-            //leapDISEntityTypes.Add(11206);
-            //leapDISEntityTypes.Add(11207);
-            //leapDISEntityTypes.Add(11208);
-            //leapDISEntityTypes.Add(11209);
-            //leapDISEntityTypes.Add(11210);
-            //leapDISEntityTypes.Add(11211);
-            //leapDISEntityTypes.Add(11212);
-            //leapDISEntityTypes.Add(11213);
-            //leapDISEntityTypes.Add(11214);
-            //leapDISEntityTypes.Add(11215);
-            //leapDISEntityTypes.Add(11216);
-            //leapDISEntityTypes.Add(11217);
-            //leapDISEntityTypes.Add(11218);
-            //leapDISEntityTypes.Add(11219);
-            //leapDISEntityTypes.Add(11220);
-            //leapDISEntityTypes.Add(11221);
-            //leapDISEntityTypes.Add(11222);
-            //leapDISEntityTypes.Add(11223);
-            //leapDISEntityTypes.Add(11224);
-            //leapDISEntityTypes.Add(723391694654364940);
-            //leapDISEntityTypes.Add(217018310884122881);
-            //leapDISEntityTypes.Add(217018310884122881); //UInt64 value for F16 Vipers, received from debugging the EntityTypeToUInt64 function to get its return value -- Entity Type of 1.2.225.1.3.3.1
 
-            //TODO: Read from database to initialize the leapDISEntityTypes hash set with acceptable DIS Entity Types
-            //This should be the list of all unit types that are supported within LEAP
+            // Configure background worker and load settings
+            SetupListenerWorker();
+            LoadSettings();
+
+            // Load valid unit names from database
+            FetchSupportedEntityNames();
+
+            // Initialize UI and internal data structures
+            EntityUpdateLabel.Text = "No entities received yet";
+            entityTimestamps = new Dictionary<string, string>();
+
+            // Timer setup to check entity timeout
+            entityTimeoutTimer = new System.Windows.Forms.Timer();
+            entityTimeoutTimer.Interval = 10 * 1000; // Checks every 10 seconds
+            lastEntityReceivedTime = DateTime.Now;
+            entityTimeoutTimer.Tick += CheckEntityTimeout;// // Subscribe event
+
         }
 
-        private void LoadEntityNamesFromDatabase()
+        // Loads all valid unit names from the database into supportedEntityTypeNames
+        private void FetchSupportedEntityNames()
         {
             supportedEntityTypeNames = new HashSet<string>();
 
@@ -142,6 +114,8 @@ namespace LEAP_dis_manager
                 MessageBox.Show($"Error loading entity names: {ex.Message}");
             }
         }
+
+        // Load persisted settings into variables and UI
         private void LoadSettings()
         {
             receivingIpAddress = Properties.Settings.Default.receivingIpAddress;
@@ -155,6 +129,7 @@ namespace LEAP_dis_manager
             //sectionID = Properties.Settings.Default.sectionID;
         }
 
+        // Save updated runtime settings back to internal state
         public void SaveSettings(string newReceivingIpAddress, int newReceivingPort, string newDatabaseIpAddress, int newDatabasePort, bool newIsMulticast, int newExerciseID)
         {
             receivingIpAddress = newReceivingIpAddress;
@@ -165,6 +140,7 @@ namespace LEAP_dis_manager
             exerciseID = newExerciseID;
         }
 
+        // Open the Settings form
         private void openSettings(object sender, EventArgs e)
         {
             if (settingsForm == null || settingsForm.IsDisposed)
@@ -174,30 +150,28 @@ namespace LEAP_dis_manager
 
             settingsForm.Show();
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        public void beginReceiving()
+
+
+        // Start UDP receiving
+        public void InitializeUdpReceiver()
         {
             isCancelled = false;
             exception = null;
-            BeginReceive();
-            //receiveThread = new Thread(new ThreadStart(BeginReceive));
-            //receiveThread.Start();
-            //receiveThread.Join();
+            SetupUdpClientAsync(); // Setup the UDP client and begin receiving asyncoronously
             if (exception != null) { MessageBox.Show("Failed to connect receive socket!"); }
         }
 
+        // Stop UDP receiving and background worker
         public void stopReceiving()
         {
             isCancelled = true;
             client?.Close();
-            //If the receive thread is still awaiting joining back with the main thread, interrupt it.
-            //receiveThread.Interrupt();
-            SetButtonState(false);
+
+            UpdateRunButtonText(false);  // Update UI to reflect stopped state
         }
 
-        private void BeginReceive()
+        // Sets up the UDP client socket and begins asynchronous receiving
+        private void SetupUdpClientAsync()
         {
             try
             {
@@ -205,19 +179,20 @@ namespace LEAP_dis_manager
                 //Default to receive from any IP address
                 IPAddress receivingIp = IPAddress.Any;
 
-                //If user input 0.0.0.0 as the IP, let that represent any IP address
+                // Use specific IP address if not set to "0.0.0.0"
                 if (receivingIpAddress != "0.0.0.0")
                 {
                     //Otherwise only receive from a specific IP address
                     receivingIp = IPAddress.Parse(receivingIpAddress);
                 }
 
-                epReceive = new IPEndPoint(receivingIp, receivingPort);
+                epReceive = new IPEndPoint(receivingIp, receivingPort); // Create endpoint to bind
 
-                //Make the receive socket non-binding to make the IP Endpoint reusable
+                // Create UDP client and set socket options for address reuse
                 client = new UdpClient();
                 client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                //client.ExclusiveAddressUse = false;
+
+                // Bind the client to the specified endpoint
                 client.Client.Bind(epReceive);
 
                 //TODO: Actually test multicast
@@ -231,7 +206,8 @@ namespace LEAP_dis_manager
                     client.JoinMulticastGroup(IPAddress.Parse(receivingIpAddress));
                 }
 ;
-                client.BeginReceive(new AsyncCallback(asyncReceive), null);
+                // Begin asynchronous receive operation
+                client.BeginReceive(new AsyncCallback(ReceiveUdpPacketAsync), null);
             }
             catch (SocketException ex)
             {
@@ -240,66 +216,80 @@ namespace LEAP_dis_manager
             }
         }
 
-        private void asyncReceive(IAsyncResult result)
+        // Checks if no entities have been received in the last 5 minutes and updates the UI
+        private void CheckEntityTimeout(object sender, EventArgs e)
+        {
+            if ((DateTime.Now - lastEntityReceivedTime).TotalMinutes >= 5)
+            {
+                // Update label to indicate no recent entity activity
+                EntityUpdateLabel.Text = "No entities received in 5 minutes";
+                EntityUpdateLabel.ForeColor = Color.Red;
+            }
+        }
+        // Asynchronous callback for receiving UDP packets
+        private void ReceiveUdpPacketAsync(IAsyncResult result)
         {
             if (!isCancelled)
             {
+                // Complete the receive operation and get the packet
                 byte[] receivedBytes = client.EndReceive(result, ref epReceive);
 
-                //TODO: Uncomment below code if/when receiving loopback network traffic becomes a togglable option
-                //Ignore packets from self if loopback is disabled. This will cover ignoring broadcast packets. Ignoring multicast packets is covered in setting up of the receive socket above through MulticastLoopback.
-                /*if (!allowLoopback && epReceive.Address.ToString().Equals(LocalIPAddress))
-                {
-                    return;
-                }*/
 
+                // Only process packets with more than 1 byte
                 if (receivedBytes.Length > 1)
                 {
-                    //Write the new received message to the queue
+                    // Add the received packet to the queue for background processing
                     receivedByteQueue.Enqueue(receivedBytes);
                 }
-
-                client.BeginReceive(new AsyncCallback(asyncReceive), client);
+                // Continue listening for more packets
+                client.BeginReceive(new AsyncCallback(ReceiveUdpPacketAsync), client);
             }
         }
 
-        private void InitializeBackgroundWorker()
+        // Configures the background worker that processes received PDUs
+        private void SetupListenerWorker()
         {
+            // Dispose of previous worker if it exists
             if (listenWorker != null)
             {
                 listenWorker.Dispose();
             }
 
+            // Initialize new BackgroundWorker with progress reporting and cancellation support
             listenWorker = new BackgroundWorker
             {
                 WorkerReportsProgress = true,
                 WorkerSupportsCancellation = true
             };
 
+            // Hook up DoWork and Completion event handlers
             listenWorker.DoWork += new DoWorkEventHandler(listenWorker_DoWork);
             listenWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(listenWorker_RunWorkerCompleted);
         }
 
-
+        // The core background loop that processes received PDUs from the queue
         private void listenWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = sender as BackgroundWorker;
 
             while (!worker.CancellationPending)
             {
+                // Try to get a packet from the queue
                 if (receivedByteQueue.TryDequeue(out byte[] receivedBytes))
                 {
-
+                    // Convert the raw byte array into a PDU using the OpenDIS library
                     Pdu pdu = PduProcessor.ConvertByteArrayToPdu1998(receivedBytes[2], receivedBytes, Endian.Big);
 
-                    //Using values less than 1 to represent any exercise ID -- No reason for this, just the way we decided..
+                    // Only process PDUs matching the specified exercise ID (or 0 for all)
                     if (pdu.ExerciseID == exerciseID || exerciseID == 0)
                     {
                         switch (pdu)
                         {
-                            //Verify the received PDU is an ESPDU
+                            // Only process Entity State PDUs
                             case EntityStatePdu espdu:
                                 int disSiteID = espdu.EntityID.Site;
+
+                                // Extract null-terminated marking (unit name) from PDU
                                 byte[] markingCharacters = espdu.Marking.Characters;
                                 int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
                                 int byteLength = (nullIndex >= 0) ? nullIndex : markingCharacters.Length; // If no null, read all 11
@@ -307,16 +297,14 @@ namespace LEAP_dis_manager
                                 int length = (unit_name.Length < 12) ? unit_name.Length : 11;
 
                                 unit_name = unit_name.Substring(0, length);
-                                //Verify that the entity described in the PDU is supported by LEAP and the disSiteID is equal to the siteID entered by the teacher
-                                //NOTE: Here we only care about the Entity Type. The entity type is what determines the type of unit (ex: F-16, F-22, INF, etc.). This will filter unit types.
+
+                                // Filter only supported entity types and valid site ID
                                 if (supportedEntityTypeNames.Contains(unit_name) && disSiteID == siteID)
 
 
                                 {
 
-                                    /*Debug.WriteLine(Syste0m.Text.Encoding.UTF8.GetString(espdu.Marking.Characters, 0, espdu.Marking.Characters.Length));
-
-                                    Debug.WriteLine("");*/
+                                    // Send valid PDU to the database
                                     sendToDatabase(databaseIpAddress, databasePort, espdu);
 
                                 }
@@ -327,40 +315,35 @@ namespace LEAP_dis_manager
             }
         }
 
-        /// <summary>
-        /// Converts an Entity Type to a UInt64. Used for easy comparisons between Entity Types.
-        /// </summary>
-        /// <param name="entityType">The Entity Type to convert.</param>
-        /// <returns>The UInt64 representation of the Entity Type.</returns>
-        public static UInt64 EntityTypeToUInt64(EntityType entityType)
+        // Updates the DataGridView with the latest timestamps from entityTimestamps
+        private void UpdateEntityTableFromTimestamps ()
         {
+            // === BEFORE refresh: save UI state ===
+            int firstDisplayedRowIndex = dataGridView.FirstDisplayedScrollingRowIndex;
+            int selectedRowIndex = dataGridView.CurrentRow?.Index ?? -1;
 
-            byte category = entityType.Category;
-            ushort country = entityType.Country;
-            byte domain = entityType.Domain;
-            byte entityKind = entityType.EntityKind;
-            byte extra = entityType.Extra;
-            byte specific = entityType.Specific;
-            byte subcategory = entityType.Subcategory;
+            // Clear and repopulate DataGridView with updated entity timestamps
+            dataGridView.Rows.Clear();
+            foreach (var entity in entityTimestamps)
+            {
+                dataGridView.Rows.Add(entity.Key, entity.Value);
+            }
+            // === AFTER refresh: restore UI state ===
+            if (dataGridView.RowCount > 0 && firstDisplayedRowIndex >= 0 && firstDisplayedRowIndex < dataGridView.RowCount)
+            {
+                dataGridView.FirstDisplayedScrollingRowIndex = firstDisplayedRowIndex;
+            }
 
-            UInt64 entityType64 = ((UInt64)subcategory << 56) | ((UInt64)specific << 48) | ((UInt64)extra << 40) | ((UInt64)entityKind << 32) |
-                                  ((UInt64)domain << 24) | ((UInt64)country << 8) | (UInt64)category;
-
-            //For debug
-            //string binary = UInt64ToString(entityType64);
-
-            return entityType64;
+            if (selectedRowIndex >= 0 && selectedRowIndex < dataGridView.RowCount)
+            {
+                dataGridView.Rows[selectedRowIndex].Selected = true;
+            }
         }
 
-        /// <summary>
-        /// Send a message to the database notifying it of the received DIS entity. This will add or update an entry based on if it is a new entity or not.
-        /// </summary>
-        /// <param name="databaseIp">IP of the database.</param>
-        /// <param name="databasePort">Port of the database.</param>
-        /// <param name="entity">Entity State PDU containing info of the DIS entity.</param>
+        // Sends EntityStatePdu data to the PostgreSQL database, either inserting or updating a unit entry
         private void sendToDatabase(string databaseIp, int databasePort, EntityStatePdu entity)
         {
-            //NOTE: Here we care about the Entity ID. The Entity ID is a unique ID for each entity in the sim (i.e. it points to a specific unit). This will represent each LEAP unit.
+            // Database connection parameters
             string userId = "postgres";
             string password = "postgres";
             string databaseName = "LEAP";
@@ -368,6 +351,7 @@ namespace LEAP_dis_manager
 
             try
             {
+                // Extract unit name from PDU marking (null-terminated string)
                 byte[] markingCharacters = entity.Marking.Characters;
                 int nullIndex = Array.IndexOf(markingCharacters, (byte)0);
                 int byteLength = (nullIndex >= 0) ? nullIndex : markingCharacters.Length; // If no null, read all 11
@@ -381,8 +365,7 @@ namespace LEAP_dis_manager
                 using NpgsqlConnection conn = new NpgsqlConnection(connectionString);
                 conn.Open();
 
-                //Check the database to see if a unit with the given Entity ID already exists
-                //this assumes that we use appplication_id and site_id to distinguish between different entities
+                // Check if the unit already exists in the `dis` table
                 string query = "SELECT COUNT(*) FROM dis WHERE section_id = @section_id AND unit_name = @unit_name";
                 using NpgsqlCommand checkCommand = new NpgsqlCommand(query, conn);
 
@@ -396,21 +379,15 @@ namespace LEAP_dis_manager
 
                 if (count == 0)
                 {
-                    //If a unit with the given Entity ID does not exist in the database, add it
-
+                    // INSERT new unit if not found
                     string insertQuery = "INSERT INTO dis (unit_name, section_id, unit_ern, application_id, site_id, xcord, ycord, zcord) VALUES (@unit_name, @section_id, @unit_ern , @application_id, @site_id, @xcord, @ycord, @zcord)";
                     using NpgsqlCommand insertCommand = new NpgsqlCommand(insertQuery, conn);
-                    insertCommand.Parameters.AddWithValue("@unit_name", unit_name);
-                    //sectionID is a global variable
-                    insertCommand.Parameters.AddWithValue("@section_id", sectionID);
 
+                    insertCommand.Parameters.AddWithValue("@unit_name", unit_name);
+                    insertCommand.Parameters.AddWithValue("@section_id", sectionID);
                     insertCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
                     insertCommand.Parameters.AddWithValue("@application_id", application_id);
                     insertCommand.Parameters.AddWithValue("@site_id", site_id);
-
-
-
-
                     insertCommand.Parameters.AddWithValue("@xcord", entity.EntityLocation.X);
                     insertCommand.Parameters.AddWithValue("@ycord", entity.EntityLocation.Y);
                     insertCommand.Parameters.AddWithValue("@zcord", entity.EntityLocation.Z);
@@ -419,6 +396,25 @@ namespace LEAP_dis_manager
                     int rowsAffected = insertCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {
+                        // Update UI and local timestamps on success
+                        this.Invoke(new Action(() =>
+                        {
+                            EntityUpdateLabel.Text = $"Last entity received at {DateTime.Now:HH:mm:ss}";
+                            lastEntityReceivedTime = DateTime.Now;
+                            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                            EntityUpdateLabel.ForeColor = SystemColors.ControlText;
+
+                            if (entityTimestamps.ContainsKey(unit_name))
+                            {
+                                entityTimestamps[unit_name] = timestamp;
+                            }
+                            else
+                            {
+                                entityTimestamps.Add(unit_name, timestamp);
+                            }
+                            // Optional: update DataGridView from the dictionary
+                            UpdateEntityTableFromTimestamps ();
+                        }));
                         Console.WriteLine("EntityID inserted successfully.");
                     }
                     else
@@ -428,29 +424,41 @@ namespace LEAP_dis_manager
                 }
                 else
                 {
-                    //If a unit with the given Entity ID exists in the database, update it
+                    // UPDATE existing unit if found
                     string updateQuery = "UPDATE dis SET unit_name = @unit_name, section_id = @section_id, unit_ern = @unit_ern, application_id = @application_id, site_id = @site_id, xcord = @xcord, ycord = @ycord, zcord =  @zcord" +
                         " WHERE section_id = @section_id AND unit_name = @unit_name ";
                     using NpgsqlCommand updateCommand = new NpgsqlCommand(updateQuery, conn);
 
-
-
                     updateCommand.Parameters.AddWithValue("@unit_name", unit_name);
-                    //sectionID is a global variable
                     updateCommand.Parameters.AddWithValue("@section_id", sectionID);
                     updateCommand.Parameters.AddWithValue("@unit_ern", unit_ern);
                     updateCommand.Parameters.AddWithValue("@application_id", application_id);
                     updateCommand.Parameters.AddWithValue("@site_id", site_id);
-
-
-
-
                     updateCommand.Parameters.AddWithValue("@xcord", entity.EntityLocation.X);
                     updateCommand.Parameters.AddWithValue("@ycord", entity.EntityLocation.Y);
                     updateCommand.Parameters.AddWithValue("@zcord", entity.EntityLocation.Z);
+
                     int rowsAffected = updateCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {
+                        this.Invoke(new Action(() =>
+                        {
+                            // Update UI and local timestamps on success
+                            lastEntityReceivedTime = DateTime.Now;
+                            EntityUpdateLabel.Text = $"Last entity received at {DateTime.Now:HH:mm:ss}";
+                            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                            EntityUpdateLabel.ForeColor = SystemColors.ControlText;
+                            if (entityTimestamps.ContainsKey(unit_name))
+                            {
+                                entityTimestamps[unit_name] = timestamp;
+                            }
+                            else
+                            {
+                                entityTimestamps.Add(unit_name, timestamp);
+                            }
+                            // Optional: update DataGridView from the dictionary
+                            UpdateEntityTableFromTimestamps ();
+                        }));
                         Console.WriteLine("EntityID inserted successfully.");
                     }
                     else
@@ -477,6 +485,7 @@ namespace LEAP_dis_manager
             }
         }
 
+        // Handles the completion of the BackgroundWorker (e.g. after cancel or error)
         private void listenWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if (e.Error != null)
@@ -495,49 +504,59 @@ namespace LEAP_dis_manager
             }
         }
 
+        // Handles UI logic for closing the program
         private void close_program(object sender, EventArgs e)
         {
             this.Close();
         }
 
+        // Main run/start logic for the system (starts or stops UDP and worker threads)
         private void run(object sender, EventArgs e)
         {
 
             if (Start_button.Text == "Start")
             {
-
+                // Validate section input
                 if (sectionID == "")
                 {
                     MessageBox.Show("Please input a section ID");
                     return;
                 }
 
+                // Validate network/database parameters
                 if (!runFuncts.runFuncts.validateRunParams(receivingIpAddress, receivingPort, databaseIpAddress, databasePort))
                 {
                     return;
                 }
                 else
                 {
-                    //Separate receiving PDUs and parsing PDUs onto separate threads
-                    beginReceiving();
+                    // Initialize UDP receiver and background worker
+                    InitializeUdpReceiver();
                     if (!listenWorker.IsBusy)
                     {
                         listenWorker.RunWorkerAsync();
-                        SetButtonState(true);
+                        UpdateRunButtonText(true);
                     }
                 }
+
+                // Start timeout timer to monitor activity
+                lastEntityReceivedTime = DateTime.Now;
+                entityTimeoutTimer.Start();
             }
             else if (Start_button.Text == "Stop")
             {
+                // Stop receiving and worker thread
                 stopReceiving();
                 if (listenWorker.WorkerSupportsCancellation == true)
                 {
                     listenWorker.CancelAsync();
                 }
+                entityTimeoutTimer.Stop();
             }
         }
 
-        private void SetButtonState(bool isRunning)
+        // Updates the Start/Stop button text based on current state
+        private void UpdateRunButtonText(bool isRunning)
         {
             if (isRunning)
             {
@@ -549,7 +568,7 @@ namespace LEAP_dis_manager
             }
         }
 
-
+        // Updates the siteID value and persists it to user settings
         private void siteIdUpDown_ValueChanged(object sender, EventArgs e)
         {
             siteID = (int)siteIdUpDown.Value;
@@ -557,12 +576,9 @@ namespace LEAP_dis_manager
             Properties.Settings.Default.Save();
         }
 
-        private void label1_Click(object sender, EventArgs e)
-        {
 
-        }
-
-        private void LoadUnitsIntoComboBox()
+        // Fetches all section IDs from the database and populates the dropdown list
+        private void FetchSectionIDsForDropdown()
         {
             List<string> sectionIDs = new List<string>();
 
@@ -576,20 +592,24 @@ namespace LEAP_dis_manager
                 using var conn = new NpgsqlConnection(connectionString);
                 conn.Open();
 
+                // Query to get all section IDs from the 'sections' table
                 string query = "SELECT sectionid FROM sections";
                 using var cmd = new NpgsqlCommand(query, conn);
                 using var reader = cmd.ExecuteReader();
 
+                // Read section IDs from the result set
                 while (reader.Read())
                 {
                     string sectionID = reader.GetString(0).Trim();
                     if (!string.IsNullOrEmpty(sectionID))
                         sectionIDs.Add(sectionID);
                 }
-                comboBox1.Items.Clear(); // Optional: clear old items first
+
+                // Clear the dropdown and repopulate with updated list
+                sectionIdDropdown.Items.Clear(); 
                 foreach (string id in sectionIDs)
                 {
-                    comboBox1.Items.Add(id);
+                    sectionIdDropdown.Items.Add(id);
                 }
                 Console.WriteLine($"Loaded {sectionIDs.Count} sectionIDs.");
             }
@@ -600,23 +620,48 @@ namespace LEAP_dis_manager
         }
 
 
+        // Event handler for when the dropdown is clicked (refreshed dynamically before showing)
         private void comboBox1_DropDown(object sender, EventArgs e)
         {
-            comboBox1.Items.Clear();
-            LoadUnitsIntoComboBox();
+            sectionIdDropdown.Items.Clear();
+            FetchSectionIDsForDropdown();
 
         }
 
-        private void create_new_scenario(object sender, EventArgs e)
-        {
-            newScenario = new ScenarioInputForm();
-            newScenario.ShowDialog();
 
+        // Event handler when user selects a different section ID from the dropdown
+        private void OnSectionIdSelectionChanged(object sender, EventArgs e)
+        {
+            sectionID = sectionIdDropdown.SelectedItem.ToString();
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+
+
+        // Opens a dialog window to create a new scenario (section)
+        private void OpenNewScenarioDialog(object sender, EventArgs e)
         {
-            sectionID = comboBox1.SelectedItem.ToString();
+            newScenario = new ScenarioInputForm();  // Open form
+
+            // If user confirms (clicked OK)
+            if (newScenario.ShowDialog() == DialogResult.OK)
+            {
+                string newId = newScenario.CreatedSectionId;
+
+                // Set the global variable
+                sectionID = newId;
+
+                // Refresh dropdown contents from DB
+                FetchSectionIDsForDropdown();
+
+                // Add the new section ID to the dropdown if it’s not already in there
+                if (!sectionIdDropdown.Items.Contains(newId))
+                {
+                    sectionIdDropdown.Items.Add(newId);
+                }
+
+
+                sectionIdDropdown.SelectedItem = newId; // Select the new one
+            }
         }
     }
 }

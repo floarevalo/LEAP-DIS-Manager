@@ -39,19 +39,23 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             button1 = new Button();
             title_label = new Label();
-            close_button = new Button();
             Start_button = new Button();
             label1 = new Label();
             label2 = new Label();
             siteIdUpDown = new NumericUpDown();
-            comboBox1 = new ComboBox();
+            sectionIdDropdown = new ComboBox();
             button2 = new Button();
+            EntityUpdateLabel = new Label();
+            dataGridView = new DataGridView();
+            Column1 = new DataGridViewTextBoxColumn();
+            Column2 = new DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)siteIdUpDown).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             SuspendLayout();
             // 
             // button1
             // 
-            button1.Location = new Point(93, 185);
+            button1.Location = new Point(12, 270);
             button1.Name = "button1";
             button1.Size = new Size(75, 23);
             button1.TabIndex = 0;
@@ -69,19 +73,9 @@
             title_label.TabIndex = 1;
             title_label.Text = "DIS Listener";
             // 
-            // close_button
-            // 
-            close_button.Location = new Point(12, 185);
-            close_button.Name = "close_button";
-            close_button.Size = new Size(75, 23);
-            close_button.TabIndex = 2;
-            close_button.Text = "Close";
-            close_button.UseVisualStyleBackColor = true;
-            close_button.Click += close_program;
-            // 
             // Start_button
             // 
-            Start_button.Location = new Point(447, 185);
+            Start_button.Location = new Point(586, 299);
             Start_button.Name = "Start_button";
             Start_button.Size = new Size(75, 23);
             Start_button.TabIndex = 3;
@@ -92,17 +86,16 @@
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(264, 129);
+            label1.Location = new Point(403, 252);
             label1.Name = "label1";
             label1.Size = new Size(68, 15);
             label1.TabIndex = 37;
             label1.Text = "Section IDs:";
-            label1.Click += label1_Click;
             // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(402, 129);
+            label2.Location = new Point(541, 252);
             label2.Name = "label2";
             label2.Size = new Size(43, 15);
             label2.TabIndex = 38;
@@ -110,50 +103,86 @@
             // 
             // siteIdUpDown
             // 
-            siteIdUpDown.Location = new Point(402, 149);
+            siteIdUpDown.Location = new Point(541, 270);
             siteIdUpDown.Name = "siteIdUpDown";
             siteIdUpDown.Size = new Size(120, 23);
             siteIdUpDown.TabIndex = 39;
             siteIdUpDown.ValueChanged += siteIdUpDown_ValueChanged;
             // 
-            // comboBox1
+            // sectionIdDropdown
             // 
-            comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(264, 149);
-            comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(121, 23);
-            comboBox1.TabIndex = 40;
-            comboBox1.DropDown += comboBox1_DropDown;
-            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+            sectionIdDropdown.FormattingEnabled = true;
+            sectionIdDropdown.Location = new Point(403, 270);
+            sectionIdDropdown.Name = "sectionIdDropdown";
+            sectionIdDropdown.Size = new Size(121, 23);
+            sectionIdDropdown.TabIndex = 40;
+            sectionIdDropdown.DropDown += comboBox1_DropDown;
+            sectionIdDropdown.SelectedIndexChanged += OnSectionIdSelectionChanged;
             // 
             // button2
             // 
-            button2.Location = new Point(134, 129);
+            button2.Location = new Point(275, 252);
             button2.Name = "button2";
-            button2.Size = new Size(115, 42);
+            button2.Size = new Size(113, 41);
             button2.TabIndex = 41;
-            button2.Text = "Create New Section ID";
+            button2.Text = "New Section ID";
             button2.UseVisualStyleBackColor = true;
-            button2.Click += create_new_scenario;
+            button2.Click += OpenNewScenarioDialog;
+            // 
+            // EntityUpdateLabel
+            // 
+            EntityUpdateLabel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            EntityUpdateLabel.AutoSize = true;
+            EntityUpdateLabel.Font = new Font("Segoe UI", 13F);
+            EntityUpdateLabel.Location = new Point(198, 51);
+            EntityUpdateLabel.Name = "EntityUpdateLabel";
+            EntityUpdateLabel.Size = new Size(155, 25);
+            EntityUpdateLabel.TabIndex = 42;
+            EntityUpdateLabel.Text = "EntityUpdateLabel";
+            EntityUpdateLabel.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // dataGridView
+            // 
+            dataGridView.AllowUserToAddRows = false;
+            dataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView.Columns.AddRange(new DataGridViewColumn[] { Column1, Column2 });
+            dataGridView.Location = new Point(198, 79);
+            dataGridView.Name = "dataGridView";
+            dataGridView.RowHeadersVisible = false;
+            dataGridView.Size = new Size(273, 128);
+            dataGridView.TabIndex = 43;
+            // 
+            // Column1
+            // 
+            Column1.HeaderText = "Unit Name";
+            Column1.Name = "Column1";
+            // 
+            // Column2
+            // 
+            Column2.HeaderText = "Time Stamp";
+            Column2.Name = "Column2";
             // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(534, 220);
+            ClientSize = new Size(690, 334);
+            Controls.Add(dataGridView);
+            Controls.Add(EntityUpdateLabel);
             Controls.Add(button2);
-            Controls.Add(comboBox1);
+            Controls.Add(sectionIdDropdown);
             Controls.Add(siteIdUpDown);
             Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(Start_button);
-            Controls.Add(close_button);
             Controls.Add(title_label);
             Controls.Add(button1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainForm";
             Text = "LEAP Dis Listener";
             ((System.ComponentModel.ISupportInitialize)siteIdUpDown).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -162,12 +191,15 @@
 
         private Button button1;
         private Label title_label;
-        private Button close_button;
         private Button Start_button;
         private Label label1;
         private Label label2;
         private NumericUpDown siteIdUpDown;
-        private ComboBox comboBox1;
+        private ComboBox sectionIdDropdown;
         private Button button2;
+        private Label EntityUpdateLabel;
+        private DataGridView dataGridView;
+        private DataGridViewTextBoxColumn Column1;
+        private DataGridViewTextBoxColumn Column2;
     }
 }

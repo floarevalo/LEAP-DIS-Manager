@@ -19,6 +19,9 @@ namespace LEAP_dis_manager
         private string databaseIpAddress;
         private int databasePort;
         private string sectionId;
+
+        public string CreatedSectionId { get; private set; }
+
         public ScenarioInputForm()
         {
             InitializeComponent();
@@ -31,7 +34,7 @@ namespace LEAP_dis_manager
 
         }
 
-        public static void addSectionId(string sectionId, string dbIp, int dbPort)
+        public void addSectionId(string sectionId, string dbIp, int dbPort)
         {
 
             string userId = "postgres";
@@ -73,8 +76,9 @@ namespace LEAP_dis_manager
                     int rowsAffected = insertCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {
-                        MessageBox.Show("Section ID has been inserted");
-
+                        CreatedSectionId = sectionId;
+                        this.DialogResult = DialogResult.OK;  // Marks the form as successfully submitted
+                        this.Close();
                     }
 
                 }

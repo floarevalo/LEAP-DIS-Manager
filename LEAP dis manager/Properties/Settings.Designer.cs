@@ -25,7 +25,7 @@ namespace LEAP_dis_manager.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.0.0.0")]
         public string receivingIpAddress {
             get {
                 return ((string)(this["receivingIpAddress"]));
@@ -49,7 +49,7 @@ namespace LEAP_dis_manager.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.1")]
         public string databaseIpAddress {
             get {
                 return ((string)(this["databaseIpAddress"]));
@@ -61,7 +61,7 @@ namespace LEAP_dis_manager.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("5432")]
         public int databasePort {
             get {
                 return ((int)(this["databasePort"]));
@@ -85,7 +85,7 @@ namespace LEAP_dis_manager.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("13")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int exerciseID {
             get {
                 return ((int)(this["exerciseID"]));
@@ -97,7 +97,7 @@ namespace LEAP_dis_manager.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int siteID {
             get {
                 return ((int)(this["siteID"]));

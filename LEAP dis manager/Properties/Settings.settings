@@ -3,25 +3,25 @@
   <Profiles />
   <Settings>
     <Setting Name="receivingIpAddress" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">0.0.0.0</Value>
     </Setting>
     <Setting Name="receivingPort" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">3000</Value>
     </Setting>
     <Setting Name="databaseIpAddress" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">127.0.0.1</Value>
     </Setting>
     <Setting Name="databasePort" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">5000</Value>
+      <Value Profile="(Default)">5432</Value>
     </Setting>
     <Setting Name="isMulticast" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="exerciseID" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">13</Value>
+      <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="siteID" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">1</Value>
     </Setting>
   </Settings>
 </SettingsFile>

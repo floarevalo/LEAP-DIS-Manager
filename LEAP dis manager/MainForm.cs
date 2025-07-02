@@ -33,10 +33,13 @@ namespace LEAP_dis_manager
 
         // Thread-safe queue to hold received UDP packets
         private ConcurrentQueue<byte[]> receivedByteQueue;
+        private ConcurrentQueue<RemoveEntityPdu> removeEntityPduQueue;
 
         // UDP Client and related networking objects
         private UdpClient client;
         private IPEndPoint epReceive;
+        private UdpClient sendClient;
+        private IPEndPoint epSend;
 
         // Thread to manage UDP receiving
         private Thread receiveThread;
@@ -48,12 +51,13 @@ namespace LEAP_dis_manager
 
         // BackgroundWorker to process packets
         private BackgroundWorker listenWorker; // Background processor for parsing packets
+        private BackgroundWorker sendWorker; //Bkacground processer for sending dis packets
 
         // Names of unit types supported by LEAP (from database)
         private HashSet<string> supportedEntityTypeNames;
 
         // Dictionary to track last received timestamps per unit
-        private Dictionary<string, string> entityTimestamps; 
+        private Dictionary<string, string> entityTimestamps;
 
         // Timeout detection
         private System.Windows.Forms.Timer entityTimeoutTimer;
@@ -63,7 +67,8 @@ namespace LEAP_dis_manager
             InitializeComponent();
 
             // Configure background worker and load settings
-            SetupListenerWorker();
+            SetupWorkers();
+
             LoadSettings();
 
             // Load valid unit names from database
@@ -153,11 +158,12 @@ namespace LEAP_dis_manager
 
 
         // Start UDP receiving
-        public void InitializeUdpReceiver()
+        public void initializeUDPReceiverAndSender()
         {
             isCancelled = false;
             exception = null;
-            SetupUdpClientAsync(); // Setup the UDP client and begin receiving asyncoronously
+            setupReceiverUDPClient(); // Setup the UDP client and begin receiving asyncoronously
+            setUpSenderUDPClient();
             if (exception != null) { MessageBox.Show("Failed to connect receive socket!"); }
         }
 
@@ -170,8 +176,12 @@ namespace LEAP_dis_manager
             UpdateRunButtonText(false);  // Update UI to reflect stopped state
         }
 
+        private void stopSending()
+        {
+            client?.Close();
+        }
         // Sets up the UDP client socket and begins asynchronous receiving
-        private void SetupUdpClientAsync()
+        private void setupReceiverUDPClient()
         {
             try
             {
@@ -216,6 +226,23 @@ namespace LEAP_dis_manager
             }
         }
 
+        private void setUpSenderUDPClient()
+        {
+            try
+            {
+                removeEntityPduQueue = new ConcurrentQueue<RemoveEntityPdu>();
+                IPAddress sendIp = IPAddress.Broadcast;
+                epSend = new IPEndPoint(sendIp, 3000);
+                sendClient = new UdpClient();
+                sendClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            }
+            catch (SocketException ex)
+            {
+                exception = ex;
+                //TODO: Create a method for stopSending
+                sendClient?.Close();
+            }
+        }
         // Checks if no entities have been received in the last 5 minutes and updates the UI
         private void CheckEntityTimeout(object sender, EventArgs e)
         {
@@ -247,25 +274,31 @@ namespace LEAP_dis_manager
         }
 
         // Configures the background worker that processes received PDUs
-        private void SetupListenerWorker()
+        private void SetupWorkers()
         {
-            // Dispose of previous worker if it exists
             if (listenWorker != null)
             {
                 listenWorker.Dispose();
             }
 
-            // Initialize new BackgroundWorker with progress reporting and cancellation support
             listenWorker = new BackgroundWorker
             {
                 WorkerReportsProgress = true,
                 WorkerSupportsCancellation = true
             };
 
-            // Hook up DoWork and Completion event handlers
+            sendWorker = new BackgroundWorker
+            {
+                WorkerReportsProgress = true,
+                WorkerSupportsCancellation = true
+            };
+            sendWorker.DoWork += new DoWorkEventHandler(sendWorker_DoWork);
             listenWorker.DoWork += new DoWorkEventHandler(listenWorker_DoWork);
             listenWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(listenWorker_RunWorkerCompleted);
         }
+
+        // Configures the background worker that sends PDUs
+
 
         // The core background loop that processes received PDUs from the queue
         private void listenWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -315,8 +348,67 @@ namespace LEAP_dis_manager
             }
         }
 
+        private void sendWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker sendWorker = sender as BackgroundWorker;
+
+            string userId = "postgres";
+            string password = "postgres";
+            string databaseName = "LEAP";
+            string connectionString = $"Host={databaseIpAddress};Port={databasePort};Database={databaseName};User Id={userId};Password={password};";
+
+            try
+            {
+                using var conn = new NpgsqlConnection(connectionString);
+                conn.Open();
+
+                // Subscribe to PostgreSQL notifications on the "unit_dead" channel
+                using var cmd = new NpgsqlCommand("LISTEN unit_dead;", conn);
+                cmd.ExecuteNonQuery();
+
+                conn.Notification += (o, e) =>
+                {
+                    var payload = e.Payload;
+
+                    // Parse JSON string to object
+                    var json = System.Text.Json.JsonDocument.Parse(payload).RootElement;
+
+                    string unitName = json.GetProperty("unit_name").GetString();
+                    string sectionId = json.GetProperty("section_id").GetString();
+                    int ern = json.GetProperty("unit_ern").GetInt32();
+                    int siteId = json.GetProperty("site_id").GetInt32();
+
+                    try
+                    {
+                        //TODO: Convert the received database information into the RemoveEntityPDU
+                        RemoveEntityPdu removeEntityPdu = new RemoveEntityPdu();
+                        DataOutputStream dos = new DataOutputStream();
+                        removeEntityPdu.Marshal(dos);
+                        byte[] bytes = dos.ConvertToBytes();
+                        sendClient.Send(bytes, bytes.Length, epSend);
+
+                        Console.WriteLine("Sent RemoveEntityPdu");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error sending PDU: " + ex.Message);
+                    }
+                };
+
+                while (!sendWorker.CancellationPending)
+                {
+                    conn.Wait(); // Waits for NOTIFY event from DB
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in ListenForUnitDeathsAsync: " + ex.Message);
+            }
+        }
+
+
         // Updates the DataGridView with the latest timestamps from entityTimestamps
-        private void UpdateEntityTableFromTimestamps ()
+        private void UpdateEntityTableFromTimestamps()
         {
             // === BEFORE refresh: save UI state ===
             int firstDisplayedRowIndex = dataGridView.FirstDisplayedScrollingRowIndex;
@@ -413,7 +505,7 @@ namespace LEAP_dis_manager
                                 entityTimestamps.Add(unit_name, timestamp);
                             }
                             // Optional: update DataGridView from the dictionary
-                            UpdateEntityTableFromTimestamps ();
+                            UpdateEntityTableFromTimestamps();
                         }));
                         Console.WriteLine("EntityID inserted successfully.");
                     }
@@ -457,7 +549,7 @@ namespace LEAP_dis_manager
                                 entityTimestamps.Add(unit_name, timestamp);
                             }
                             // Optional: update DataGridView from the dictionary
-                            UpdateEntityTableFromTimestamps ();
+                            UpdateEntityTableFromTimestamps();
                         }));
                         Console.WriteLine("EntityID inserted successfully.");
                     }
@@ -485,6 +577,7 @@ namespace LEAP_dis_manager
             }
         }
 
+
         // Handles the completion of the BackgroundWorker (e.g. after cancel or error)
         private void listenWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
@@ -502,6 +595,11 @@ namespace LEAP_dis_manager
             {
                 // Access the result from e.Result
             }
+        }
+
+        private void sendWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+
         }
 
         // Handles UI logic for closing the program
@@ -531,11 +629,15 @@ namespace LEAP_dis_manager
                 else
                 {
                     // Initialize UDP receiver and background worker
-                    InitializeUdpReceiver();
+                    initializeUDPReceiverAndSender();
                     if (!listenWorker.IsBusy)
                     {
                         listenWorker.RunWorkerAsync();
                         UpdateRunButtonText(true);
+                    }
+                    if (!sendWorker.IsBusy)
+                    {
+                        sendWorker.RunWorkerAsync();
                     }
                 }
 
@@ -547,9 +649,15 @@ namespace LEAP_dis_manager
             {
                 // Stop receiving and worker thread
                 stopReceiving();
+                stopSending();
                 if (listenWorker.WorkerSupportsCancellation == true)
                 {
                     listenWorker.CancelAsync();
+                }
+
+                if (sendWorker.WorkerSupportsCancellation == true)
+                {
+                    sendWorker.CancelAsync();
                 }
                 entityTimeoutTimer.Stop();
             }
@@ -606,7 +714,7 @@ namespace LEAP_dis_manager
                 }
 
                 // Clear the dropdown and repopulate with updated list
-                sectionIdDropdown.Items.Clear(); 
+                sectionIdDropdown.Items.Clear();
                 foreach (string id in sectionIDs)
                 {
                     sectionIdDropdown.Items.Add(id);
